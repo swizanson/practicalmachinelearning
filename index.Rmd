@@ -11,11 +11,7 @@ I started out by loading my data and defining my training and testing sets;
 library(caret)
 library(ggplot2)
 library(randomForest)
-```
-
-```{r}
-train.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-pml.training <- read.csv(url(train.url), na.strings=c("NA","#DIV/0!",""))
+pml.training <- read.csv("C:/Users/soup__000/Downloads/pml-training.csv", na.strings=c("NA","#DIV/0!",""))
 inTrain <- createDataPartition(y=pml.training$classe, p=0.7, list=FALSE)
 training <- pml.training[inTrain,]
 testing <- pml.training[-inTrain,]
@@ -61,4 +57,4 @@ confusionMatrix(prediction.rfmodel, testing$classe)
 
 ```
 
-Based on the confusion matrix, my model accuracy is 99.79%! The expected out of sample error is 100% - 99.79% = 0.21%.
+Based on the confusion matrix, my model accuracy is 99.79%! The expected out of sample error is 100% - 99.79% = 0.21%.  
