@@ -1,26 +1,64 @@
 ---
-title: "index"
+title: "Practical Machine Learning Course Project"
 author: "Tiffany Bezanson"
-date: "January 26, 2016"
+date: "January 27, 2016"
 output: html_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+I started out by loading my data and defining my training and testing sets;
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-sonme new text to test the commit function;
-
-Jan 26 2015 3:53pm
+```{r load_packages, include=FALSE}
+library(caret)
+library(ggplot2)
+library(randomForest)
+```
 
 ```{r}
-summary(cars)
+train.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+pml.training <- read.csv(url(train.url), na.strings=c("NA","#DIV/0!",""))
+inTrain <- createDataPartition(y=pml.training$classe, p=0.7, list=FALSE)
+training <- pml.training[inTrain,]
+testing <- pml.training[-inTrain,]
 ```
 
-You can also embed plots, for example:
+When I loaded the data, I removed the NA and #DIV/0! values. This will allow R to use the variables as numeric values and not interpret them as factors or strings. There is still a lot of work to be done to the dataset before it will be ready to model on.
 
-```{r, echo=FALSE}
-plot(cars)
+Removing Near Zero Predictors;
+
+Sometimes data contains predictors that are constant or near constant across the entire dataset. This means the values are generally the same for all samples. It is best practice to remove these variables from the data so that they don't wrongfully influence the model. I also decided to remove the first variable, which is just an id variable, which is unhelpful to our dataset. This brings our total number of variables down to 126 from 160.
+
+```{r}
+training.nzv <- nearZeroVar(training, saveMetrics=TRUE)
+training <- training[,training.nzv$nzv==FALSE]
+training <- training[c(-1)]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+I also decided it would be good to remove any variables that had more than 60% na values. Using a loop, I am looking through my data for variables that have more than 60% variance. I then find the name of that variable and remove it from my training dataset. After doing this, my total number of variables is 58.
+
+```{r}
+training.nacheck <- training
+for(i in 1:length(training)) {
+    if( sum( is.na( training[ ,i] ) ) /nrow(training) >= .6) {
+        for(j in 1:length(training.nacheck)) {
+            if( length( grep(names(training[i]), names(training.nacheck)[j]) ) == 1)  {
+                training.nacheck <- training.nacheck[ , -j]
+            }   
+        } 
+    }
+}
+
+# keep using the same dataframe for consistancy
+training <- training.nacheck
+```
+
+I decided to use random forests for my modelling method. It is the most popular and usually the most accurate of all the caret machine learning algorithms. 
+
+```{r}
+set.seed(2033)
+rf.model <- train(classe ~., data = training, method = "rf")
+prediction.rfmodel <- predict(rf.model, testing)
+confusionMatrix(prediction.rfmodel, testing$classe)
+
+```
+
+Based on the confusion matrix, my model accuracy is 99.79%! The expected out of sample error is 100% - 99.79% = 0.21%.
